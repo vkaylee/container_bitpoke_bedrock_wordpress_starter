@@ -1,0 +1,71 @@
+networks:
+  wp_local:
+volumes:
+  wordpress: {}
+  db_data: {}
+services:
+  wordpress:
+    depends_on:
+      - db
+      - memcached
+    build:
+      dockerfile: Containerfile
+      context: .
+      target: wp
+      args:
+        - TAG=bedrock
+    networks:
+      - wp_local
+    volumes:
+      - wordpress:/app
+      - ./config:/app/config:ro
+      - ./composer.json:/app/composer.json:rw
+      - ./composer.lock:/app/composer.lock:rw
+      - ./web/index.php:/app/web/index.php:ro
+      - ./web/wp-config.php:/app/web/wp-config.php:ro
+      - ./vendor:/app/vendor:rw
+    ports:
+      - "8080:8080"
+    restart: always
+    environment:
+      DB_HOST: ${DB_HOST:-db_host}:${DB_PORT:-3306}
+      DB_USER: ${DB_USER:-db_user}
+      DB_PASSWORD: ${DB_PASSWORD:-db_password}
+      DB_NAME: ${DB_NAME:-db_name}
+      MEMCACHED_HOST: memcached:11211
+      WP_HOME: http://localhost:8080
+      WP_SITEURL: http://localhost:8080/wp1
+      WP_ENV: development
+
+  pma:
+    image: phpmyadmin/phpmyadmin
+    networks:
+      - wp_local
+    environment:
+      # https://docs.phpmyadmin.net/en/latest/setup.html#docker-environment-variables
+      PMA_HOST: ${DB_HOST:-db_host}
+      PMA_PORT: ${DB_PORT:-3306}
+      UPLOAD_LIMIT: 50M
+      PMA_USER: ${DB_USER:-db_user}
+      PMA_PASSWORD: ${DB_PASSWORD:-db_password}
+    ports:
+      - 127.0.0.1::80
+  db:
+    image: mariadb:10.9.5
+    volumes:
+      - db_data:/var/lib/mysql
+    restart: always
+    networks:
+      wp_local:
+        aliases:
+          - "db_host"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-db_root_password}
+      MYSQL_DATABASE: ${DB_NAME:-db_name}
+      MYSQL_USER: ${DB_USER:-db_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-db_password}
+
+  memcached:
+    image: memcached:1.5
+    networks:
+      - wp_local
