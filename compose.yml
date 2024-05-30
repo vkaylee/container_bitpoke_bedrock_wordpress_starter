@@ -34,7 +34,7 @@ services:
       DB_NAME: ${DB_NAME:-db_name}
       MEMCACHED_HOST: memcached:11211
       WP_HOME: http://localhost:8080
-      WP_SITEURL: http://localhost:8080/wp1
+      WP_SITEURL: http://localhost:8080/wp
       WP_ENV: development
 
   pma:
